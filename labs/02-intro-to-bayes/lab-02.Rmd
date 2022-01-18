@@ -58,11 +58,23 @@ You have a rough sketch of what you should do for this part of the assignment. T
 # Input: obs.data, theta
 # Output: bernoulli likelihood
 
+myBernLH <- function(obs.data, theta) {
+  N <- length(obs.data)
+  x <- sum(obs.data)
+  LH <- (theta^x)*(1-theta)^{N-x}
+  return(LH)
+}
 
 ### Plot LH for a grid of theta values ###
 # Create the grid #
 # Store the LH values
 # Create the Plot
+
+theta.sim <- seq(from = 0, to = 1, length.out=1000)
+
+sim.LH <- myBernLH(obs.data, theta = theta.sim)
+
+plot(theta.sim, sim.LH, type="l", main="Likelihood Profile", xlab="Simulated Support", ylab="Likelihood")
 ```
 
 

@@ -1,0 +1,140 @@
+---
+title: "calhoun-zach-lab4"
+author: "Zach Calhoun"
+date: "1/24/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Problem 1
+
+```{r}
+library(tidyverse)
+x = c(18, 40, 15, 17, 20, 44, 38)
+y = c(-4, 0, -19, 24, 19, 10, 5, 10, 29, 13, -9, -8, 20, -1, 12, 21, -7, 14,
+     13, 20, 11, 16, 15, 27, 23, 36, -33, 34, 13, 11, -19, 21, 6, 25, 30,
+     22, --28, 15, 26, -1, -2, 43, 23, 22, 25, 16, 10, 29)
+
+# Create dataframe from x and y
+iq_data = data.frame(c(x,y),c(
+  array(data=TRUE, length(x)),
+  array(data=FALSE, length(y))
+))
+
+colnames(iq_data) <- c("change", "spurter")
+
+iq_data %>%
+  ggplot(aes(x=change,fill=spurter)) +
+  geom_histogram(position="dodge")
+
+
+```
+
+
+
+## Problem 2
+The plot above weakly suggests that the spurter mean iq change is greater than the non-spurter mean iq change. This is weak because the number of samples is small.
+
+
+## Problem 3
+We load the data.
+Set the priors
+Find the parameters.
+```{r}
+
+prior = data.frame(m=0, c=1, a=0.5, b=50)
+findParam = function(prior, data) {
+  postParam = NULL
+  c = prior$c
+  m = prior$m
+  a = prior$a
+  b = prior$b
+  n = length(data)
+  postParam = data.frame(
+            m = (c*m + n*mean(data))/(c+n),
+            c = c + n,
+            a = a + n/2,
+            b = b + 0.5*(sum((data-mean(data))^2))
+  )
+  return(postParam)
+}
+
+postS = findParam(prior, x)
+postC = findParam(prior, y)
+
+# Now, create the simulation
+sim = 1000
+
+muc = NULL
+lambdac = NULL
+mus = NULL
+lambdas = NULL
+
+lambdas = rgamma(sim, shape = postS$a, rate = postS$b)
+lambdac = rgamma(sim, shape = postC$a, rate = postC$b)
+mus = sapply(sqrt(1/(postS$c*lambdas)),rnorm, n = 1, mean = postS$m)
+muc = sapply(sqrt(1/(postC$c*lambdac)),rnorm, n = 1, mean = postC$m)
+# Store simulations
+simDF = data.frame(lambda = c(lambdas, lambdac), mu = c(mus, muc), Treatment = rep(c("Spurters", "Controls"), each = sim))
+
+simDF$lambda = simDF$lambda^{-0.5}
+# Plot the simulations
+ggplot(data = simDF, aes(x = mu, y = lambda, colour = Treatment, shape = Treatment)) + 
+  geom_point(alpha = 0.2) + labs(x = expression(paste(mu, " (Mean Change in IQ Score)")), y = expression(paste(lambda^{-1/2}, " (Std. Dev. of Change)"))) +
+   ggtitle("Posterior Samples")+ 
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+## Task 4
+
+```{r}
+
+# Now, just do the same thing to simulate the event 100000s of times
+sim <- 10000
+
+# Get the data for the simulation
+lambdas = rgamma(sim, shape = postS$a, rate = postS$b)
+lambdac = rgamma(sim, shape = postC$a, rate = postC$b)
+mus = sapply(sqrt(1/(postS$c*lambdas)),rnorm, n = 1, mean = postS$m)
+muc = sapply(sqrt(1/(postC$c*lambdac)),rnorm, n = 1, mean = postC$m)
+
+# Calculate the number of times where the mus > muc and divide by
+# the total number of simulations.
+sum((mus > muc)/sim)
+
+```
+
+As shown above, $\mathbb{P}(\mu_S > \mu_C) \approx 0.9825$. This number suggests that if we performed this experiment 10000 times, we would see that the change in IQ among the spurters cohort is greater than the change in the control 98.5% of the time.
+
+## Task 5
+
+```{r, warning=FALSE}
+# Sample from 1000 again.
+sim = 1000
+# Create lambda and mu values from the prior
+lambda = rgamma(sim, shape = prior$a, rate = prior$b)
+mu = sapply(sqrt(1/(prior$c*lambda)),rnorm, n = 1, mean = prior$m)
+
+# Store these simulations
+simDF = data.frame(lambda = lambda, mu = mu, each=sim)
+
+simDF$lambda = simDF$lambda^{-0.5}
+# Create the plot with these prior mu and lambda values.
+
+ggplot(data = simDF, aes(x = mu, y = lambda)) +
+  geom_point(color="green4", size=1) + labs(x = expression(paste(mu, " (Mean Change in IQ Score)")), y = expression(paste(lambda^{-1/2}, " (Std. Dev. of Change)"))) +
+  ggtitle("Prior Samples")+ 
+  xlim(-50,50)+
+  ylim(0,40)+
+  theme_minimal()
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+Looking at the above, our prior beliefs appear to be reflected accurately in the parameters chosen. The distribution appears centered around zero, and the expected standard deviation is indeed around 10. This is interesting to contrast with the prior distributions, since our prior does not seem to reflect that the outcome of the spurter group is likely. That is to say, the spurter posterior has a $\mu$ centered around 24, with a $\lambda^{-1/2}$ centered around 12. This appears to be a highly unlikely outcome in the prior distribution, which is interesting, because it suggests that we are unlikely to get the spurter outcome on random chance. However, the posterior of the control group is centered around $(10,15)$, which appears more likely than the outcome observed in the spurter group. In conclusion, our prior places a higher probability on the control outcome than on the spurter outcome, which seems like a reasonable. 
+
+As an extra note -- the prior distribution is more similar to the spurter distribution, which suggests that the spurter posterior is more influenced by this shape than by the shape of the likelihood data.

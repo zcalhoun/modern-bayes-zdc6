@@ -1,0 +1,182 @@
+---
+title: "calhoun-zach-homework4"
+author: "Zach Calhoun"
+date: "1/25/2022"
+output: pdf_document
+---
+
+# Problem 1
+*For simplification, I assume log refers to natural log in the questions below. This simplifies deriving the inverse function and the derivative, without impacting the general form of the final answers.*
+
+## Part A
+If $\psi = \log[\theta/(1-\theta)]$, then we can solve for the inverse function $g(\theta)$ as follows:
+
+\begin{align*}
+g(\theta) & = \log\frac{\theta}{1-\theta}\\
+\exp(g(\theta)) & = \frac{\theta}{1-\theta}\\
+\exp(-g(\theta)) & = \frac{1-\theta}{\theta}\\
+\frac{1}{\exp(-g(\theta))+1} &= \theta\\
+\frac{1}{\exp(-\psi)+1} = \frac{\exp(\psi)}{\exp(\psi)+1} &= h(\psi)\\
+\end{align*}
+
+We can now solve for the derivative $\frac{dh}{d\psi}$:
+$$\frac{dh}{d\psi} = \frac{\exp(\psi)}{(\exp(\psi)+1)^2}$$
+
+Now that we have the derivative, we can write out the complete form of $p_\psi(\psi)$:
+
+\begin{align*}
+p_\psi(\psi) & = p_\theta(h(\psi))\times |\frac{dh}{d\psi}|\\
+& = p_\theta(\frac{\exp(\psi)}{\exp(\psi)+1}) \times  \frac{\exp(\psi)}{(\exp(\psi)+1)^2}\\
+&=\frac{1}{B(a,b)}(\frac{\exp(\psi)}{\exp(\psi)+1})^{a-1}(1-\frac{\exp(\psi)}{\exp(\psi)+1})^{b-1}\times \frac{\exp(\psi)}{(\exp(\psi)+1)^2}\\
+&=\frac{1}{B(a,b)}(\frac{\exp(\psi)}{\exp(\psi)+1})^a(\frac{1}{\exp(\psi)+1})^{b}\\
+&=\frac{1}{B(a,b)}\frac{\exp(\psi)^a+1}{(\exp(\psi)+1)^{a+b}}
+\end{align*}
+
+If $a=b=1$, then:
+
+$$p_\psi(\psi) = \frac{\exp(\psi)+1}{(\exp(\psi)+1)^2}$$
+Since the function for $\psi$ is not bounded over $(-\infty,\infty)$, this function has support over all real numbers.
+
+We can plot this function using the code below:
+```{r}
+# Create a sequence of psi values
+psi <- seq(-10,10, by=0.1)
+
+# Create the function that calculations p(psi)
+p.psi <- function(psi) {
+  numerator <- exp(psi)+1
+  denominator <- (exp(psi)+1)^2
+  
+  return(numerator/denominator)
+}
+
+# Apply the function
+p.psi.sim <- sapply(psi, p.psi)
+
+# Make the graph
+plot(psi,p.psi.sim, xlab=expression(psi), ylab=expression(paste("P(",psi,")")))
+
+```
+\newpage
+
+## Part B
+In this case, $h(\psi) = \exp(\psi)$, and $\frac{dh}{d\psi}=\exp(\psi)$, so we can solve for $p_\psi(\psi)$ as follows:
+
+\begin{align*}
+p_\psi(\psi) & = p_\theta(h(\psi))\times |\frac{dh}{d\psi}|\\
+&=\frac{b^a}{\Gamma(a)}\exp(\psi)^{a-1}\exp(-b\exp(\psi)) \times \exp(\psi)\\
+&= \frac{b^a}{\Gamma(a)}\exp(\psi)^{a}\exp(-b\exp(\psi))\\
+&= \frac{b^a}{\Gamma(a)}\exp(a\psi-b\exp(\psi))
+\end{align*}
+
+In the case where $a=b=1$, we have:
+
+$$p_\psi(\psi) = \exp(\psi-\exp(\psi))$$
+Again, $\psi$ is mapped over $(-\infty, \infty)$, so this function is valid over all real values of $\psi$. $p_\psi(\psi)$ is plotted using the code below:
+
+```{r}
+# Again, create the function
+p.psi = function(psi) {
+  return(exp(psi-exp(psi)))
+}
+
+# Store the sequence of values to sample over. 
+psi = seq(-10,10,by=0.1)
+
+# Apply the function to the sequence
+p.psi.sim <- sapply(psi,p.psi)
+
+# Plot the outcome
+plot(psi,p.psi.sim, xlab=expression(psi), ylab=expression(paste("P(",psi,")")))
+```
+
+# Part 2
+
+## Task 4
+
+```{r, warning=FALSE}
+# Download the library
+library(tidyverse)
+
+# Store x and y
+x = c(18, 40, 15, 17, 20, 44, 38)
+y = c(-4, 0, -19, 24, 19, 10, 5, 10, 29, 13, -9, -8, 20, -1, 12, 21, -7, 14,
+     13, 20, 11, 16, 15, 27, 23, 36, -33, 34, 13, 11, -19, 21, 6, 25, 30,
+     22, --28, 15, 26, -1, -2, 43, 23, 22, 25, 16, 10, 29)
+
+
+# Set up the prior parameters
+prior = data.frame(m=0, c=1, a=0.5, b=50)
+
+# Calculate the posterior parameters based on the data
+findParam = function(prior, data) {
+  postParam = NULL
+  c = prior$c
+  m = prior$m
+  a = prior$a
+  b = prior$b
+  n = length(data)
+  postParam = data.frame(
+            m = (c*m + n*mean(data))/(c+n),
+            c = c + n,
+            a = a + n/2,
+            b = b + 0.5*(sum((data-mean(data))^2))
+  )
+  return(postParam)
+}
+
+# Get the posterior parameters for the spurters and the control group.
+postS = findParam(prior, x)
+postC = findParam(prior, y)
+
+# Now we are going to simulate the event 10000 times.
+sim <- 10000
+
+muc = NULL
+lambdac = NULL
+mus = NULL
+lambdas = NULL
+
+# Get the data for the simulation
+lambdas = rgamma(sim, shape = postS$a, rate = postS$b)
+lambdac = rgamma(sim, shape = postC$a, rate = postC$b)
+mus = sapply(sqrt(1/(postS$c*lambdas)),rnorm, n = 1, mean = postS$m)
+muc = sapply(sqrt(1/(postC$c*lambdac)),rnorm, n = 1, mean = postC$m)
+
+# Calculate the number of times where the mus > muc and divide by
+# the total number of simulations.
+print(sum((mus > muc)/sim))
+```
+
+As shown in the calculation above, we get $p(\mu_s > \mu_c) = 0.9828$. This number suggests that if we performed this experiment 10000 times, we would see that the change in IQ among the spurters cohort is greater than the change in the control 98.28% of the time, given our prior expectations on calculating these posteriors. 
+
+## Task 5
+
+```{r, warning=FALSE}
+# Sample from 1000 again.
+sim = 1000
+# Create lambda and mu values from the prior
+lambda = rgamma(sim, shape = prior$a, rate = prior$b)
+mu = sapply(sqrt(1/(prior$c*lambda)),rnorm, n = 1, mean = prior$m)
+
+# Store these simulations
+simDF = data.frame(lambda = lambda, mu = mu, each=sim)
+
+# Convert lambda to be the standard deviation instead of the precision
+simDF$lambda = simDF$lambda^{-0.5}
+
+# Create the plot with these prior mu and lambda values.
+ggplot(data = simDF, aes(x = mu, y = lambda)) +
+  geom_point(color="green4", size=1) + labs(x = expression(paste(mu,
+      " (Mean Change in IQ Score)")), y = expression(paste(lambda^{-1/2}, 
+      " (Std. Dev. of Change)"))) +
+  ggtitle("Prior Samples")+ 
+  xlim(-50,50)+
+  ylim(0,40)+
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+Looking at the above, our prior beliefs appear to be reflected accurately in the parameters chosen. The distribution appears centered around zero, and the expected standard deviation is indeed around 10. This is interesting to contrast with the prior distributions, since our prior does not seem to reflect that the outcome of the spurter group is likely. That is to say, the spurter posterior has a $\mu$ centered around 24, with a $\lambda^{-1/2}$ centered around 12. This appears to be a highly unlikely outcome in the prior distribution, which is interesting, because it suggests that we are unlikely to get the spurter outcome on random chance. However, the posterior of the control group is centered around $(10,15)$, which appears more likely than the outcome observed in the spurter group. In conclusion, our prior places a higher probability on the control outcome than on the spurter outcome, which seems like a reasonable. 
+
+As an extra note -- the prior distribution is more similar to the spurter distribution, which suggests that the spurter posterior is more influenced by this shape than by the shape of the likelihood data.

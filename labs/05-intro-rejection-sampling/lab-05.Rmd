@@ -55,7 +55,7 @@ Figure 1: Comparision of the target function and the Unif(0,1) and the Beta(2,2)
 
 # Tasks 2 -- 4
 
-According to the rejection sampling approach sample from f(x) using the Unif(0,1) pdf as an enveloping function. In order to do this, we write a general rejection sampling function that also allows us to plot the historams for any simulation size. Finally, our function also allows us to look at task 4 quite easily. 
+According to the rejection sampling approach sample from f(x) using the Unif(0,1) pdf as an enveloping function. In order to do this, we write a general rejection sampling function that also allows us to plot the histograms for any simulation size. Finally, our function also allows us to look at task 4 quite easily. 
 
 ```{r}
 sim_fun <- function(f, envelope = "unif", par1 = 0, par2 = 1, n = 10^2, plot = TRUE){
@@ -64,7 +64,11 @@ sim_fun <- function(f, envelope = "unif", par1 = 0, par2 = 1, n = 10^2, plot = T
   d_envelope <- match.fun(paste0("d", envelope))
   proposal <- r_envelope(n, par1, par2)
   density_ratio <- f(proposal) / d_envelope(proposal, par1, par2)
-  samples <- proposal[runif(n) < density_ratio]
+  
+  # Should this be changed? It seems like this should be changed
+  # so the acceptance is only kept if the value is less than the
+  # density ratio.
+  samples <- proposal[unif(n) < density_ratio]
   acceptance_ratio <- length(samples) / n
   if (plot) {
     hist(samples, probability = TRUE, 
@@ -84,15 +88,13 @@ par(mfrow = c(2,2), mar = rep(4, 4))
 unif_1 <- sim_fun(fx, envelope = "unif", par1 = 0, par2 = 1, n = 10^2) 
 unif_2 <- sim_fun(fx, envelope = "unif", par1 = 0, par2 = 1, n = 10^5)
 # ATTN: You will need to add in the Beta(2,2) densities on your own to finish task 4.
+beta_1 <- sim_fun(fx, envelope = "beta", par1 = 2, par2 = 2, n = 10^2)
+beta_1 <- sim_fun(fx, envelope = "beta", par1 = 2, par2 = 2, n = 10^5)
 ```
 
 Figure 2: Comparision of the output of the rejection sampling for 100 versus 100,000 simulations with uniform and beta distributions as envelope functions.
 
-```{r}
-par(mfrow = c(1,1))
-```
 
-# Remaining tasks
-
-Be sure to finish any remaining tasks for homework. 
+# Task 5
+In this case, the uniform and beta enveloping functions have very similar performance. 
 

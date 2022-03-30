@@ -121,7 +121,7 @@ for (s in 1:samples) {
   # Randomly sample from the blue distribution
   blue.s <- sample(corr['blue.corr'][,1], 1)
   # Calculate the probability that we are less than the blue value
-  orange.given.blue <- mean(corr['orange.corr'][,1] < blue.s)
+  orange.given.blue <- mean(corr['orange.corr'][,1] > blue.s)
   # Add to the output
   output <- rbind(output, orange.given.blue)
 }
@@ -132,4 +132,4 @@ mean(output)
 
 Because we are trying to get $Pr(\rho_{blue} > \rho_{orange})$, we can get this value by running a Monte Carlo simulation on $P(\rho_{orange} > \rho_{blue} | \rho_{blue})Pr(\rho_{blue})$. The Monte Carlo approach estimates this probability by randomly sampling from blue, then estimating the probability that orange is less than this value using the number of orange correlation values that are below this blue value.
 
-Looking at the output from my code ($Pr(\rho_{blue} > \rho_{orange}) \approx 0.012$), we can say that with high probability, the orange correlation is greater than the blue correlation.
+Looking at the output from my code ($Pr(\rho_{blue} < \rho_{orange}) \approx 0.988$), we can say that with high probability, the orange correlation is greater than the blue correlation.
